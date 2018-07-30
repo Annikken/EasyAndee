@@ -53,11 +53,11 @@ void setName(const char* name)
 	{
 		memcpy(limit,name,32);
 		limit[32] = '\0';
-		sendAndee(2,(char*)limit);//SET_ANDEE_NAME = 2
+		sendAndee(99,2,(char*)limit);//SET_ANDEE_NAME = 2
 	}
 	else
 	{
-		sendAndee(2,(char*)name);//SET_ANDEE_NAME = 2
+		sendAndee(99,2,(char*)name);//SET_ANDEE_NAME = 2
 	}
 }
 
@@ -67,7 +67,7 @@ void EasyAndeePoll()
 	pollRx(rxBuffer);
 	switch(rxBuffer[1])
 	{
-		case EASYANDEE_D_OUT:
+		case EASYANDEE_D_OUT: //done, TODO test
 			//processDOut();
 			pinMode(rxBuffer[2] - 97,OUTPUT);
 			digitalWrite(rxBuffer[2] - 97,rxBuffer[3]-48);
@@ -77,7 +77,7 @@ void EasyAndeePoll()
 			processDIn();
 			break;
 		
-		case EASYANDEE_A_OUT:
+		case EASYANDEE_A_OUT: //done, TODO test
 			processAOut();
 			break;
 		
@@ -173,7 +173,7 @@ bool pollRx(char* buffer)
 		{				
 			if(tempChar == ']')
 			{
-				//Serial.print("pollRx:");Serial.println(buffer);
+				Serial.print("pollRx:");Serial.println(buffer);
 				buffer[rxCount] = '\0';
 				
 				digitalWrite(SS_PIN,HIGH);
@@ -185,7 +185,7 @@ bool pollRx(char* buffer)
 			}
 			else if(tempChar == 173)
 			{
-				//Serial.println("pollRx: No Reply");
+				Serial.println("pollRx: No Reply");
 				digitalWrite(SS_PIN,HIGH);
 				SPI.endTransaction();
 				
@@ -210,9 +210,9 @@ bool pollRx(char* buffer)
 	return false;
 } 
 
-void sendAndee(unsigned char andeeCommand,char* message){
+void sendAndee(unsigned int id,unsigned char andeeCommand,char* message){
 	memset(txBuffer,0x00,TX_MAX);
-	sprintf(txBuffer,"#99#%d#%s;",andeeCommand,message);	
+	sprintf(txBuffer,"#%d#%d#%s;",id, andeeCommand, message);	
 	
 	spiSendData( txBuffer,strlen(txBuffer) );	
 }

@@ -14,9 +14,12 @@ This library is free software. This library also uses parts of the Arduino Firma
 #define EASYANDEE_D_OUT 'D'
 #define EASYANDEE_A_IN 'B'
 #define EASYANDEE_A_OUT 'A'
+#define SET_ANDEE_NAME 2
 
 #define REPLY_A_IN 'C'
 #define REPLY_D_IN 'F'
+
+
 
 /* #define PIN_0 'a';
 #define PIN_1 'b';
@@ -51,4 +54,4 @@ void processAOut();
 void resetRX();
 void spiSendData(char*, size_t);
 bool pollRx(char*);
-void sendAndee(unsigned char,char*);
+void sendAndee(unsigned int, unsigned char,char*);
