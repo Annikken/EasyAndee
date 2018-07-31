@@ -15,7 +15,7 @@ This library is free software */
 #include <SPI.h>
 #include <EasyAndee.h>
 
-#define RX_DELAY 50
+#define RX_DELAY 200
 #define RX_MAX 20
 #define TX_MAX 20
  
@@ -53,14 +53,167 @@ void setName(const char* name)
 	{
 		memcpy(limit,name,32);
 		limit[32] = '\0';
-		sendAndee(99,2,(char*)limit);//SET_ANDEE_NAME = 2
+		sendAndee(SET_EZANDEE_NAME,(char*)limit);//
 	}
 	else
 	{
-		sendAndee(99,2,(char*)name);//SET_ANDEE_NAME = 2
+		sendAndee(SET_EZANDEE_NAME,(char*)name);//
 	}
 }
 
+
+void processDOut()
+{	
+	if(rxBuffer[2] >= 111 )//'o'
+	{
+		switch(rxBuffer[2])
+		{
+			case 'o':
+				pinMode(A0,OUTPUT);
+				digitalWrite(A0,rxBuffer[3]-48);
+			break;
+			
+			case 'p':
+				pinMode(A1,OUTPUT);
+				digitalWrite(A1,rxBuffer[3]-48);
+			break;
+			
+			case 'q':
+				pinMode(A2,OUTPUT);
+				digitalWrite(A2,rxBuffer[3]-48);
+				break;
+			
+			case 'r':
+				pinMode(A3,OUTPUT);
+				digitalWrite(A3,rxBuffer[3]-48);
+				break;
+			
+			case 's':
+				pinMode(A4,OUTPUT);
+				digitalWrite(A4,rxBuffer[3]-48);
+				break;
+			
+			case 't':
+				pinMode(A5,OUTPUT);
+				digitalWrite(A5,rxBuffer[3]-48);
+				break;			
+		}
+	}
+	else
+	{
+		pinMode(rxBuffer[2] - 97,OUTPUT);
+		digitalWrite(rxBuffer[2] - 97,rxBuffer[3]-48);
+	}	
+}
+
+void processAOut()
+{
+	char analogBuffer[4];
+	analogBuffer[0] = rxBuffer[3];
+	analogBuffer[1] = rxBuffer[4];
+	analogBuffer[2] = rxBuffer[5];
+	analogBuffer[3] = '\0';
+
+	int analogValue = strtol(analogBuffer,NULL,10);	 
+	if( rxBuffer[2] == 'd' ||
+		rxBuffer[2] == 'f' ||
+		rxBuffer[2] == 'g' ||
+		rxBuffer[2] == 'j' )
+		{
+			pinMode(rxBuffer[2] - 97,OUTPUT);
+			analogWrite(rxBuffer[2] - 97,analogValue);
+		}
+}
+
+void processDIn()
+{
+	int value = 0;
+	char temp[5];
+	
+	if(rxBuffer[2] >= 111 )//'o'
+	{
+		switch(rxBuffer[2])
+		{
+			case 'o':
+				pinMode(A0,INPUT);
+				value = digitalRead(A0);
+			break;
+			
+			case 'p':
+				pinMode(A1,INPUT);
+				value = digitalRead(A1);
+			break;
+			
+			case 'q':
+				pinMode(A2,INPUT);
+				value = digitalRead(A2);
+				break;
+			
+			case 'r':
+				pinMode(A3,INPUT);
+				value = digitalRead(A3);
+				break;
+			
+			case 's':
+				pinMode(A4,INPUT);
+				value = digitalRead(A4);
+				break;
+			
+			case 't':
+				pinMode(A5,INPUT);
+				value = digitalRead(A5);
+				break;			
+		}
+	}
+	else
+	{
+		pinMode(rxBuffer[2] - 97,INPUT);
+		value = digitalRead(rxBuffer[2] - 97);
+	}	
+	snprintf(temp,5,"%c%c%c%c", rxBuffer[0], EASYANDEE_D_IN_TO_PHONE, rxBuffer[2], value+48);
+	sendAndee(EASYANDEE_REPLY_D,temp);
+}
+
+void processAIn()
+{
+	int value = 0;
+	char temp[8];	
+	
+	switch(rxBuffer[2])
+		{
+			case 'o':
+				pinMode(A0,INPUT);
+				value = analogRead(A0);
+			break;
+			
+			case 'p':
+				pinMode(A1,INPUT);
+				value = analogRead(A1);
+			break;
+			
+			case 'q':
+				pinMode(A2,INPUT);
+				value = analogRead(A2);
+				break;
+			
+			case 'r':
+				pinMode(A3,INPUT);
+				value = analogRead(A3);
+				break;
+			
+			case 's':
+				pinMode(A4,INPUT);
+				value = analogRead(A4);
+				break;
+			
+			case 't':
+				pinMode(A5,INPUT);
+				value = analogRead(A5);
+				break;			
+		}
+	snprintf(temp,8,"%c%c%c%04d", rxBuffer[0], EASYANDEE_A_IN_TO_PHONE, rxBuffer[2], value);
+	sendAndee(EASYANDEE_REPLY_A,temp);
+}
 
 void EasyAndeePoll()
 {
@@ -68,9 +221,7 @@ void EasyAndeePoll()
 	switch(rxBuffer[1])
 	{
 		case EASYANDEE_D_OUT: //done, TODO test
-			//processDOut();
-			pinMode(rxBuffer[2] - 97,OUTPUT);
-			digitalWrite(rxBuffer[2] - 97,rxBuffer[3]-48);
+			processDOut();
 			break;
 		
 		case EASYANDEE_D_IN:
@@ -84,52 +235,13 @@ void EasyAndeePoll()
 		case EASYANDEE_A_IN:
 			processAIn();
 			break;		
-		default:
+		case 0x00:
+			//Do Nothing here
+			break;
+		default:			
 			Serial.println("Unknown Command");
 			break;
 	}
-}
-
-void processDIn()
-{
-	
-}
-
-void processAOut()
-{
-	char analogBuffer[4];
-	analogBuffer[0] = rxBuffer[3];
-	analogBuffer[1] = rxBuffer[4];
-	analogBuffer[2] = rxBuffer[5];
-	analogBuffer[3] = '\0';
-
-	int analogValue = strtol(analogBuffer,NULL,10);	  
-
-	if(rxBuffer[2] == 'd')//pin 3
-	{
-		pinMode(3,OUTPUT);
-		analogWrite(3,analogValue);
-	}
-	else if(rxBuffer[2] == 'f')//pin 5
-	{
-		pinMode(5,OUTPUT);
-		analogWrite(5,analogValue);
-	}
-	else if(rxBuffer[2] == 'g')//pin 6
-	{
-		pinMode(6,OUTPUT);
-		analogWrite(6,analogValue);
-	}
-	else if(rxBuffer[2] == 'j')//pin 9
-	{
-		pinMode(9,OUTPUT);
-		analogWrite(9,analogValue);
-	}  
-}
-
-void processAIn()
-{
-	
 }
 
 /****************************************************************************
@@ -171,7 +283,7 @@ bool pollRx(char* buffer)
 		tempChar = SPI.transfer(0x00);
 		if(tempChar > 32)
 		{				
-			if(tempChar == ']')
+		if(tempChar == '}')
 			{
 				Serial.print("pollRx:");Serial.println(buffer);
 				buffer[rxCount] = '\0';
@@ -210,9 +322,9 @@ bool pollRx(char* buffer)
 	return false;
 } 
 
-void sendAndee(unsigned int id,unsigned char andeeCommand,char* message){
+void sendAndee(unsigned char andeeCommand,char* message){
 	memset(txBuffer,0x00,TX_MAX);
-	sprintf(txBuffer,"#%d#%d#%s;",id, andeeCommand, message);	
+	sprintf(txBuffer,"#99#%d#%s;", andeeCommand, message);	
 	
 	spiSendData( txBuffer,strlen(txBuffer) );	
 }
